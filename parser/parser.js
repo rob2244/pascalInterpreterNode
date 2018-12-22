@@ -12,7 +12,10 @@ import UnaryOp from './ast/unaryOp'
 import Num from './ast/num'
 import ProcedureDecl from './ast/procedureDecl'
 import Param from './ast/param'
-
+import ProcCall from './ast/procCall'
+import If from './ast/if'
+import Conditional from './ast/conditional'
+import Else from './ast/else'
 
 export default class Parser {
     constructor(lexer) {
@@ -100,7 +103,6 @@ export default class Parser {
         return varNodes.map(v => new Param(v, type))
     }
 
-
     variableDeclaration() {
         const vars = [this.variable()]
 
@@ -118,11 +120,9 @@ export default class Parser {
     typeSpec() {
         const type = new Type(this.currentToken)
 
-        if (this.currentToken.type == types.REAL)
-            this.eat(types.REAL)
+        if (this.currentToken.type == types.REAL) this.eat(types.REAL)
 
-        if (this.currentToken.type == types.INTEGER)
-            this.eat(types.INTEGER)
+        if (this.currentToken.type == types.INTEGER) this.eat(types.INTEGER)
 
         return type
     }
@@ -158,18 +158,89 @@ export default class Parser {
         }
 
         if (this.currentToken.type === types.ID) {
-            return this.assignmentStatement()
+            return this.actionStatement()
         }
+
+        if (this.currentToken.type === types.IF)
+            return this.conditionalStatement()
 
         return this.empty()
     }
 
-    assignmentStatement() {
+    conditionalStatement() {
+        const ifStmnt = this.ifStatement()
+        let elseStmnt
+
+        if (this.currentToken.type === types.ELSE) {
+            elseStmnt = this.elseStatement()
+        } else {
+            this.eat(types.SEMI)
+        }
+
+        return new Conditional(ifStmnt, undefined, elseStmnt)
+    }
+
+    ifStatement() {
+        this.eat(types.IF)
+
+        if (this.currentToken.type === types.LPAREN) this.eat(types.LPAREN)
+        const boolExpression = this.expr()
+        if (this.currentToken.type === types.RPAREN) this.eat(types.RPAREN)
+
+        this.eat(types.THEN)
+        const compStatement = this.compoundStatement()
+
+        return new If(boolExpression, compStatement)
+    }
+
+    elseStatement() {
+        this.eat(types.ELSE)
+        const body = this.compoundStatement()
+        this.eat(types.SEMI)
+
+        return new Else(body)
+    }
+
+    actionStatement() {
         const variable = this.variable()
+
+        if (this.currentToken.type === types.ASSIGN)
+            return this.assignmentStatement(variable)
+
+        if (this.currentToken.type === types.LPAREN)
+            return this.procCallStatement(variable)
+    }
+
+    assignmentStatement(variable) {
         const token = this.currentToken
         this.eat(types.ASSIGN)
 
         return new Assign(variable, token, this.expr())
+    }
+
+    procCallStatement(variable) {
+        this.eat(types.LPAREN)
+        const args = this.arguments()
+        this.eat(types.RPAREN)
+
+        return new ProcCall(variable, args)
+    }
+
+    arguments() {
+        const args = []
+        if (this.currentToken.type === types.RPAREN) {
+            args.push(this.NoOp())
+            return args
+        }
+
+        args.push(this.expr())
+
+        while (this.currentToken.type === types.COMMA) {
+            this.eat(types.COMMA)
+            args.push(this.expr())
+        }
+
+        return args
     }
 
     expr() {
@@ -194,7 +265,11 @@ export default class Parser {
 
     term() {
         let node = this.factor()
-        while ([types.MUL, types.INTEGER_DIV, types.FLOAT_DIV].includes(this.currentToken.type)) {
+        while (
+            [types.MUL, types.INTEGER_DIV, types.FLOAT_DIV].includes(
+                this.currentToken.type
+            )
+        ) {
             const token = this.currentToken
 
             if (token.type === types.MUL) {
@@ -208,7 +283,6 @@ export default class Parser {
             if (token.type === types.FLOAT_DIV) {
                 this.eat(types.FLOAT_DIV)
             }
-
 
             node = new BinOp(node, token, this.factor())
         }
@@ -261,10 +335,11 @@ export default class Parser {
         return new NoOp()
     }
 
-
     eat(tokenType) {
         if (this.currentToken.type !== tokenType)
-            throw new Error(`Expected ${tokenType} but got ${this.currentToken.type}`)
+            throw new Error(
+                `Expected ${tokenType} but got ${this.currentToken.type}`
+            )
 
         this.currentToken = this.lexer.getNextToken()
     }

@@ -13,7 +13,6 @@ export default class SemanticAnalyzer {
         return this.currentScope
     }
 
-
     visit(node) {
         const className = node.constructor.name
         const metName = `visit${className}`
@@ -22,7 +21,11 @@ export default class SemanticAnalyzer {
     }
 
     visitProgram(program) {
-        const global = new ScopedSymbolTable('global', 1, this.currentScope)
+        const global = new ScopedSymbolTable(
+            'global',
+            this.currentScope + 1,
+            this.currentScope
+        )
 
         this.currentScope = global
         this.visit(program.block)
@@ -43,22 +46,21 @@ export default class SemanticAnalyzer {
         if (this.currentScope.lookup(name, false))
             throw new Error(`Symbol ${name} has already been defined`)
 
-
         const type = this.currentScope.lookup(varDecl.type.value, true)
         this.currentScope.define(new VarSymbol(name, type))
     }
 
     visitProcedureDecl(procDecl) {
-        const {
-            procName,
-            params,
-            block
-        } = procDecl
+        const { procName, params, block } = procDecl
 
         const procSymbol = new ProcedureSymbol(procName, [])
         this.currentScope.define(procSymbol)
 
-        const procScope = new ScopedSymbolTable(procName, this.currentScope.level + 1, this.currentScope)
+        const procScope = new ScopedSymbolTable(
+            procName,
+            this.currentScope.level + 1,
+            this.currentScope
+        )
         this.currentScope = procScope
 
         for (const param of params) {
@@ -72,9 +74,7 @@ export default class SemanticAnalyzer {
         this.currentScope = this.currentScope.enclosingScope
     }
 
-    visitType() {
-
-    }
+    visitType() {}
 
     visitCompound(compound) {
         for (const item of compound.children) {
@@ -86,8 +86,7 @@ export default class SemanticAnalyzer {
         const name = assign.left.value
         const symbol = this.currentScope.lookup(name, true)
 
-        if (!symbol)
-            throw new Error(`Symbol ${name} has not been declared`)
+        if (!symbol) throw new Error(`Symbol ${name} has not been declared`)
 
         this.visit(assign.left)
         this.visit(assign.right)
@@ -109,7 +108,6 @@ export default class SemanticAnalyzer {
     visitVar(v) {
         const symbol = this.currentScope.lookup(v.value, true)
 
-        if (!symbol)
-            throw new Error(`Symbol ${v.value} has not been declared`)
+        if (!symbol) throw new Error(`Symbol ${v.value} has not been declared`)
     }
 }

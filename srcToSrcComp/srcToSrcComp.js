@@ -25,7 +25,7 @@ export default class SrcToSrcCompiler {
     visitProgram(program) {
         let result = `program ${program.name}${this.currentScope.scope} \n`
 
-        const global = new ScopedSymbolTable('global', 1, this.currentScope.level)
+        const global = new ScopedSymbolTable('global', this.currentScope.level + 1, this.currentScope)
         this.currentScope = global
 
 

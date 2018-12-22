@@ -26,7 +26,7 @@ export default class ScopedSymbolTable {
             return symbol
 
         if (this.enclosingScope && searchParent)
-            return this.enclosingScope.lookup(name)
+            return this.enclosingScope.lookup(name, true)
     }
 
     toString() {

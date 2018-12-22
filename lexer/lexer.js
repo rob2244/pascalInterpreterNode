@@ -9,7 +9,11 @@ const keywords = {
     DIV: new Token(types.INTEGER_DIV, 'DIV'),
     REAL: new Token(types.REAL, 'REAL'),
     INTEGER: new Token(types.INTEGER, 'INTEGER'),
-    PROCEDURE: new Token(types.PROCEDURE, 'PROCEDURE')
+    PROCEDURE: new Token(types.PROCEDURE, 'PROCEDURE'),
+    RETURN: new Token(types.RETURN, 'RETURN'),
+    IF: new Token(types.IF, 'IF'),
+    THEN: new Token(types.THEN, 'THEN'),
+    ELSE: new Token(types.ELSE, 'ELSE')
 }
 
 export default class Lexer {
@@ -19,8 +23,7 @@ export default class Lexer {
     }
 
     get currentChar() {
-        if (this.pos > this.text.length - 1)
-            return undefined
+        if (this.pos > this.text.length - 1) return undefined
 
         return this.text.charAt(this.pos)
     }
@@ -36,12 +39,9 @@ export default class Lexer {
                 continue
             }
 
+            if (!isNaN(this.currentChar)) return this.number()
 
-            if (!isNaN(this.currentChar))
-                return this.number()
-
-            if (this.isLetter(this.currentChar))
-                return this.id()
+            if (this.isLetter(this.currentChar)) return this.id()
 
             if (this.currentChar === '+') {
                 this.advance()
@@ -53,7 +53,6 @@ export default class Lexer {
                 return new Token(types.MINUS, '-')
             }
 
-
             if (this.currentChar === '*') {
                 this.advance()
                 return new Token(types.MUL, '*')
@@ -64,25 +63,21 @@ export default class Lexer {
                 return new Token(types.FLOAT_DIV, '/')
             }
 
-
             if (this.currentChar === ':' && this.peek() === '=') {
                 this.advance()
                 this.advance()
                 return new Token(types.ASSIGN, ':=')
             }
 
-
             if (this.currentChar === ':') {
                 this.advance()
                 return new Token(types.COLON, ':')
             }
 
-
             if (this.currentChar === ';') {
                 this.advance()
                 return new Token(types.SEMI, ';')
             }
-
 
             if (this.currentChar === '.') {
                 this.advance()
@@ -111,15 +106,21 @@ export default class Lexer {
     }
 
     isWhiteSpace() {
-        return this.currentChar === ' ' ||
+        return (
+            this.currentChar === ' ' ||
             this.currentChar === '\r\n' ||
             this.currentChar === '\n' ||
             this.currentChar === '\r'
+        )
     }
 
     skipWhitespace() {
-        while (this.currentChar === ' ' || this.currentChar === '\r\n' ||
-            this.currentChar === '\n' || this.currentChar === '\r')
+        while (
+            this.currentChar === ' ' ||
+            this.currentChar === '\r\n' ||
+            this.currentChar === '\n' ||
+            this.currentChar === '\r'
+        )
             this.advance()
     }
 
@@ -128,8 +129,7 @@ export default class Lexer {
     }
 
     skipComments() {
-        while (this.currentChar !== '}')
-            this.advance()
+        while (this.currentChar !== '}') this.advance()
 
         this.advance()
     }
@@ -137,16 +137,16 @@ export default class Lexer {
     id() {
         let result = ''
 
-        while (this.currentChar &&
-            this.isAlphaNumeric(this.currentChar) ||
-            this.currentChar === '_') {
+        while (
+            (this.currentChar && this.isAlphaNumeric(this.currentChar)) ||
+            this.currentChar === '_'
+        ) {
             result += this.currentChar
             this.advance()
         }
         const key = result.toUpperCase()
 
-        if (keywords.hasOwnProperty(key))
-            return keywords[key]
+        if (keywords.hasOwnProperty(key)) return keywords[key]
 
         return new Token(types.ID, result)
     }
@@ -191,10 +191,8 @@ export default class Lexer {
     peek() {
         const next = this.pos + 1
 
-        if (next > this.text.length - 1)
-            return undefined
+        if (next > this.text.length - 1) return undefined
 
         return this.text.charAt(next)
     }
-
 }
